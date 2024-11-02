@@ -12,13 +12,25 @@ class Painter extends JPanel {
         g.drawLine(Constants.FRAME_WIDTH / 2, 0, Constants.FRAME_WIDTH / 2, Constants.FRAME_HEIGHT);
 
         double a = 1;
+        Integer lastX = null;
+        Integer lastY = null;
+
+        g.setColor(Color.blue);
         for (double i = -100; i < 100; i += Constants.DOT_DENSITY) {
             double function = i * Math.exp(a * (1 - i));
 
             int x = (int)(i * Constants.ZOOM_LEVEL + Constants.FRAME_WIDTH / 2);
-            int y = Constants.FRAME_HEIGHT - (int)(function * Constants.ZOOM_LEVEL + Constants.FRAME_HEIGHT / 2) - 5;
+            int y = Constants.FRAME_HEIGHT - (int)(function * Constants.ZOOM_LEVEL + Constants.FRAME_HEIGHT / 2);
 
-            g.fillOval(x, y, 5, 5);
+            if(lastX == null){
+                lastX = x;
+                lastY = y;
+            }
+
+            g.drawLine(lastX, lastY, x, y);
+
+            lastX = x;
+            lastY = y;
         }
     }
 }
