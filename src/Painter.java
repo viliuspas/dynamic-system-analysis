@@ -27,18 +27,22 @@ class Painter extends JPanel {
         Integer lastY = null;
 
         g.setColor(Color.blue);
-        for (double i = -100; i < 100; i += Constants.DOT_DENSITY) {
+        for (double i = Constants.DOMAIN_MIN; i < Constants.DOMAIN_MAX; i += Constants.DOT_DENSITY) {
             double function = i * Math.exp(a * (1 - i));
 
-            int x = (int)(i * Constants.ZOOM_LEVEL + Constants.FRAME_WIDTH / 2);
-            int y = Constants.FRAME_HEIGHT - (int)(function * Constants.ZOOM_LEVEL + Constants.FRAME_HEIGHT / 2);
+            int x = (int)(i * Constants.ZOOM_MULTIPLIER + Constants.FRAME_WIDTH / 2);
+            int y = Constants.FRAME_HEIGHT - (int)(function * Constants.ZOOM_MULTIPLIER + Constants.FRAME_HEIGHT / 2);
 
             if(lastX == null){
                 lastX = x;
                 lastY = y;
             }
 
-            g.drawLine(lastX, lastY, x, y);
+            // ensures that the distance between points isn't too big
+            // avoids calculation / drawing errors
+            if(Math.abs(x - lastX) < Constants.MAX_JUMP && Math.abs(y - lastY) < Constants.MAX_JUMP){
+                g.drawLine(lastX, lastY, x, y);
+            }
 
             lastX = x;
             lastY = y;
