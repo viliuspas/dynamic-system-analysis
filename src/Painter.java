@@ -2,6 +2,17 @@ import javax.swing.*;
 import java.awt.*;
 
 class Painter extends JPanel {
+
+    private String inputText = "1";
+
+    public void setInputText(String inputText){
+        this.inputText = inputText;
+    }
+
+    public String getInputText(){
+        return inputText;
+    }
+
     @Override
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
@@ -11,7 +22,7 @@ class Painter extends JPanel {
         // y
         g.drawLine(Constants.FRAME_WIDTH / 2, 0, Constants.FRAME_WIDTH / 2, Constants.FRAME_HEIGHT);
 
-        double a = 1;
+        double a = Double.parseDouble(getInputText());
         Integer lastX = null;
         Integer lastY = null;
 
