@@ -11,6 +11,7 @@ class Painter extends JPanel {
     final int maxJump = Constants.MAX_JUMP;
     final double unitLineSize = Constants.UNIT_LINE_SIZE;
     private String inputText = "1";
+    private String orbitPoint = "1";
 
     public void setInputText(String inputText){
         this.inputText = inputText;
@@ -18,6 +19,14 @@ class Painter extends JPanel {
 
     public String getInputText(){
         return inputText;
+    }
+
+    public void setOrbitPoint(String orbitPoint){
+        this.orbitPoint = orbitPoint;
+    }
+
+    public String getOrbitPoint(){
+        return orbitPoint;
     }
 
     public void drawCoordinateSystem(Graphics g) {
@@ -84,7 +93,7 @@ class Painter extends JPanel {
 
         lastX = null;
         lastY = null;
-        double selectedX = 2;
+        double selectedX = Double.parseDouble(getOrbitPoint());
         double selectedY = selectedX * Math.exp(a * (1 - selectedX));
         double coefficient = selectedY / selectedX;
 
