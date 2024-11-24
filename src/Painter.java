@@ -93,7 +93,7 @@ class Painter extends JPanel {
 
         lastX = null;
         lastY = null;
-        double selectedX = Double.parseDouble(getOrbitPoint());
+        double selectedX = 1;
         double selectedY = selectedX * Math.exp(a * (1 - selectedX));
         double coefficient = selectedY / selectedX;
 
@@ -121,7 +121,7 @@ class Painter extends JPanel {
         }
 
 
-        double startX = 0.1;
+        double startX = Double.parseDouble(getOrbitPoint());
 
         g.setColor(Color.green);
 
