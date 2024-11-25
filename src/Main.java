@@ -49,8 +49,10 @@ public class Main{
 
         JButton buttonZoomIn = new JButton("+");
         JButton buttonZoomOut = new JButton("-");
+        JButton buttonReset = new JButton("0");
         coordinateSystemPanel.add(buttonZoomIn);
         coordinateSystemPanel.add(buttonZoomOut);
+        coordinateSystemPanel.add(buttonReset);
 
         inputPanel.add(firstChunkPanel);
         inputPanel.add(secondChunkPanel);
@@ -58,53 +60,56 @@ public class Main{
         frame.add(inputPanel, BorderLayout.NORTH);
 
         Painter painter = new Painter();
+
+        MouseControl mouseControl = new MouseControl(painter);
+        painter.addMouseListener(mouseControl);
+        painter.addMouseMotionListener(mouseControl);
+        painter.addMouseWheelListener(mouseControl);
+
         frame.add(painter, BorderLayout.CENTER);
 
         slider.addChangeListener(e -> {
             String inputText = Double.toString((double)slider.getValue() / 10);
             textField.setText(Double.toString((double)slider.getValue() / 10));
             painter.setInputText(inputText);
-            frame.add(painter);
-            frame.update(frame.getGraphics());
+            painter.repaint();
         });
 
         textField.addActionListener(e -> {
             String inputText = textField.getText();
             painter.setInputText(inputText);
-            frame.add(painter);
-            frame.update(frame.getGraphics());
+            painter.repaint();
         });
 
         slider2.addChangeListener(e -> {
             String inputText = Double.toString((double)slider2.getValue() / 10);
             orbitPoint.setText(Double.toString((double)slider2.getValue() / 10));
             painter.setOrbitPoint(inputText);
-            frame.add(painter);
-            frame.update(frame.getGraphics());
+            painter.repaint();
         });
 
         orbitPoint.addActionListener(e -> {
             String inputText = orbitPoint.getText();
             painter.setOrbitPoint(inputText);
-            frame.add(painter);
-            frame.update(frame.getGraphics());
+            painter.repaint();
         });
 
         orbitCheckBox.addActionListener(e -> {
             painter.setDrawOrbitState(orbitCheckBox.isSelected());
-            frame.add(painter);
-            frame.update(frame.getGraphics());
+            painter.repaint();
         });
 
         buttonZoomIn.addActionListener(e -> {
             painter.increaseZoom();
-            frame.add(painter);
-            frame.update(frame.getGraphics());
+            painter.repaint();
         });
         buttonZoomOut.addActionListener(e -> {
             painter.decreaseZoom();
-            frame.add(painter);
-            frame.update(frame.getGraphics());
+            painter.repaint();
+        });
+        buttonReset.addActionListener(e -> {
+            painter.resetToStart();
+            painter.repaint();
         });
 
         frame.setVisible(true);

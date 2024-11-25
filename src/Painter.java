@@ -4,16 +4,25 @@ import java.awt.*;
 class Painter extends JPanel {
     final int fHeight = Constants.FRAME_HEIGHT;
     final int fWidth = Constants.FRAME_WIDTH;
-    final double domainMin = Constants.DOMAIN_MIN;
-    final double domainMax = Constants.DOMAIN_MAX;
+    //final int functionMoveInterval = Constants.FUNCTION_MOVE_INTERVAL;
+    private double domainMin = Constants.DOMAIN_MIN;
+    private double domainMax = Constants.DOMAIN_MAX;
+    private double domainMaxY = Constants.DOMAIN_MAX;
+    private double domainMinY = Constants.DOMAIN_MIN;
     final double dotDensity = Constants.DOT_DENSITY;
     final int zoomInterval = Constants.ZOOM_INTERVAL;
     private int zoom = Constants.DEFAULT_ZOOM_MULTIPLIER;
     final int maxJump = Constants.MAX_JUMP;
     final double unitLineSize = Constants.UNIT_LINE_SIZE;
+    final int orbitStepCount = Constants.ORBIT_STEP_COUNT;
     private String inputText = "1";
     private String orbitPoint = "1";
     private boolean drawOrbitState = false;
+    private int functionOffsetX = 0;
+    private int functionOffsetY = 0;
+    private int domainOffsetX = 0;
+    private int domainOffsetY = 0;
+    //private int domainRange = 0;
 
     @FunctionalInterface
     interface Function {
@@ -22,6 +31,36 @@ class Painter extends JPanel {
 
     public void setDrawOrbitState(boolean state) {
         drawOrbitState = state;
+    }
+
+    public boolean getDrawOrbitState() {
+        return drawOrbitState;
+    }
+
+//    public void moveLeft() {
+//        domainRange -= 1;
+//    }
+//
+//    public void moveRight() {
+//        domainRange += 1;
+//    }
+
+    public int getFunctionOffsetX() {
+        return functionOffsetX;
+    }
+
+    public void moveFunction(int x, int y) {
+        functionOffsetX += x;
+        functionOffsetY -= y;
+        domainOffsetX = (functionOffsetX/zoom);
+        domainOffsetY = (functionOffsetY/zoom);
+    }
+
+    public void resetToStart() {
+        functionOffsetX = 0;
+        functionOffsetY = 0;
+        domainOffsetX = 0;
+        domainOffsetY = 0;
     }
 
     public void increaseZoom() {
@@ -37,6 +76,10 @@ class Painter extends JPanel {
                 zoom -= zoomInterval;
             }
         }
+    }
+
+    public int getZoom() {
+        return zoom;
     }
 
     public void setInputText(String inputText){
@@ -56,21 +99,24 @@ class Painter extends JPanel {
     }
 
     public void drawCoordinateSystem(Graphics g) {
-        // x axis
-        g.drawLine(0, fHeight / 2, fWidth, fHeight / 2);
-        // y axis
-        g.drawLine(fWidth / 2, 0, fWidth / 2, fHeight);
+        // x-axis
+        g.drawLine(0, convertY(0) + functionOffsetY, fWidth, convertY(0) + functionOffsetY);
+        // y-axis
+        g.drawLine(convertX(0) - functionOffsetX, 0, convertX(0) - functionOffsetX, fHeight);
 
-        int y1 = (int)(fHeight / 2 + unitLineSize * zoom);
-        int y2 = (int)(fHeight / 2 - unitLineSize * zoom);
-        int x1 = (int)(fWidth / 2 + unitLineSize * zoom);
-        int x2 = (int)(fWidth / 2 - unitLineSize * zoom);
+        int y1 = convertY(-unitLineSize) + functionOffsetY;
+        int y2 = convertY(unitLineSize) + functionOffsetY;
+        int x1 = convertX(unitLineSize) - functionOffsetX;
+        int x2 = convertX(-unitLineSize) - functionOffsetX;
 
-        for (double i = domainMin; i < domainMax; i += 1) {
-            int x = (int)(i * zoom + fWidth / 2);
-            int y = (int)(i * zoom + fHeight / 2);
-
+        // x-axis unit lines
+        for (double i = domainMin + domainOffsetX; i < domainMax + domainOffsetX; i += 1) {
+            int x = convertX(i) - functionOffsetX;
             g.drawLine(x, y1, x, y2);
+        }
+        // y-axis unit lines
+        for (double i = domainMinY + domainOffsetY; i < domainMaxY + domainOffsetY; i += 1) {
+            int y = convertY(i) + functionOffsetY;
             g.drawLine(x1, y, x2, y);
         }
     }
@@ -97,14 +143,20 @@ class Painter extends JPanel {
 
         double currentX = startX;
         double currentY = 0;
-        for(int i = 0; i<20 ;++i) {
+        for(int i = 0; i<orbitStepCount ;++i) {
             double function1 = currentX * Math.exp(a * (1 - currentX));
 
-            g.drawLine(convertX(currentX), convertY(currentY), convertX(currentX), convertY(function1));
+            g.drawLine(convertX(currentX) - functionOffsetX,
+                    convertY(currentY) + functionOffsetY,
+                    convertX(currentX) - functionOffsetX,
+                    convertY(function1) + functionOffsetY);
 
             double functionX = function1 / coefficient;
 
-            g.drawLine(convertX(currentX), convertY(function1), convertX(functionX), convertY(function1));
+            g.drawLine(convertX(currentX) - functionOffsetX,
+                    convertY(function1) + functionOffsetY,
+                    convertX(functionX) - functionOffsetX,
+                    convertY(function1) + functionOffsetY);
 
             currentX = functionX;
             currentY = function1;
@@ -117,7 +169,8 @@ class Painter extends JPanel {
 
         g.setColor(color);
 
-        for (double i = domainMin; i < domainMax; i += dotDensity) {
+
+        for (double i = domainMin + domainOffsetX; i < domainMax + domainOffsetX; i += dotDensity) {
             double functionY = function.execute(i, a);
 
             int x = convertX(i);
@@ -131,7 +184,7 @@ class Painter extends JPanel {
             // ensures that the distance between points isn't too big
             // avoids calculation / drawing errors
             if(Math.abs(x - lastX) < maxJump && Math.abs(y - lastY) < maxJump){
-                g.drawLine(lastX, lastY, x, y);
+                g.drawLine(lastX - functionOffsetX, lastY + functionOffsetY, x - functionOffsetX, y + functionOffsetY);
             }
 
             lastX = x;
