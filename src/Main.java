@@ -39,8 +39,22 @@ public class Main{
         JTextField orbitPoint = new JTextField("1", 3);
         secondChunkPanel.add(orbitPoint);
 
+        JCheckBox orbitCheckBox = new JCheckBox("");
+        secondChunkPanel.add(orbitCheckBox);
+
+        // coordinate system control chunk
+
+        JPanel coordinateSystemPanel = new JPanel();
+        coordinateSystemPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
+
+        JButton buttonZoomIn = new JButton("+");
+        JButton buttonZoomOut = new JButton("-");
+        coordinateSystemPanel.add(buttonZoomIn);
+        coordinateSystemPanel.add(buttonZoomOut);
+
         inputPanel.add(firstChunkPanel);
         inputPanel.add(secondChunkPanel);
+        inputPanel.add(coordinateSystemPanel);
         frame.add(inputPanel, BorderLayout.NORTH);
 
         Painter painter = new Painter();
@@ -72,6 +86,23 @@ public class Main{
         orbitPoint.addActionListener(e -> {
             String inputText = orbitPoint.getText();
             painter.setOrbitPoint(inputText);
+            frame.add(painter);
+            frame.update(frame.getGraphics());
+        });
+
+        orbitCheckBox.addActionListener(e -> {
+            painter.setDrawOrbitState(orbitCheckBox.isSelected());
+            frame.add(painter);
+            frame.update(frame.getGraphics());
+        });
+
+        buttonZoomIn.addActionListener(e -> {
+            painter.increaseZoom();
+            frame.add(painter);
+            frame.update(frame.getGraphics());
+        });
+        buttonZoomOut.addActionListener(e -> {
+            painter.decreaseZoom();
             frame.add(painter);
             frame.update(frame.getGraphics());
         });

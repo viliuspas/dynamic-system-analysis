@@ -7,11 +7,37 @@ class Painter extends JPanel {
     final double domainMin = Constants.DOMAIN_MIN;
     final double domainMax = Constants.DOMAIN_MAX;
     final double dotDensity = Constants.DOT_DENSITY;
-    final int zoom = Constants.ZOOM_MULTIPLIER;
+    final int zoomInterval = Constants.ZOOM_INTERVAL;
+    private int zoom = Constants.DEFAULT_ZOOM_MULTIPLIER;
     final int maxJump = Constants.MAX_JUMP;
     final double unitLineSize = Constants.UNIT_LINE_SIZE;
     private String inputText = "1";
     private String orbitPoint = "1";
+    private boolean drawOrbitState = false;
+
+    @FunctionalInterface
+    interface Function {
+        double execute(double x, double param);
+    }
+
+    public void setDrawOrbitState(boolean state) {
+        drawOrbitState = state;
+    }
+
+    public void increaseZoom() {
+        zoom += zoomInterval;
+    }
+
+    public void decreaseZoom() {
+        if (zoom > 10) {
+            if(zoom - zoomInterval < 10) {
+                zoom = 10;
+            }
+            else {
+                zoom -= zoomInterval;
+            }
+        }
+    }
 
     public void setInputText(String inputText){
         this.inputText = inputText;
@@ -57,69 +83,13 @@ class Painter extends JPanel {
         return (int)(fHeight/2 - y * zoom);
     }
 
-    @Override
-    public void paintComponent(Graphics g) {
-        super.paintComponent(g);
+    public void drawOrbit(Graphics g, double a) {
 
-        drawCoordinateSystem(g);
-
-        double a = Double.parseDouble(getInputText());
-        Integer lastX = null;
-        Integer lastY = null;
-
-        g.setColor(Color.blue);
-
-        for (double i = domainMin; i < domainMax; i += dotDensity) {
-            double function = i * Math.exp(a * (1 - i));
-
-            int x = (int)(i * zoom + fWidth / 2);
-            int y = fHeight - (int)(function * zoom + fHeight / 2);
-
-            if(lastX == null){
-                lastX = x;
-                lastY = y;
-            }
-
-            // ensures that the distance between points isn't too big
-            // avoids calculation / drawing errors
-            if(Math.abs(x - lastX) < maxJump && Math.abs(y - lastY) < maxJump){
-                g.drawLine(lastX, lastY, x, y);
-            }
-
-            lastX = x;
-            lastY = y;
-        }
-        //second function
-
-        lastX = null;
-        lastY = null;
         double selectedX = 1;
         double selectedY = selectedX * Math.exp(a * (1 - selectedX));
         double coefficient = selectedY / selectedX;
 
-        g.setColor(Color.red);
-
-        for (double i = domainMin; i < domainMax; i += dotDensity) {
-            double function = coefficient * i;
-
-            int x = (int)(i * zoom + fWidth / 2);
-            int y = fHeight - (int)(function * zoom + fHeight / 2);
-
-            if(lastX == null){
-                lastX = x;
-                lastY = y;
-            }
-
-            // ensures that the distance between points isn't too big
-            // avoids calculation / drawing errors
-            if(Math.abs(x - lastX) < maxJump && Math.abs(y - lastY) < maxJump){
-                g.drawLine(lastX, lastY, x, y);
-            }
-
-            lastX = x;
-            lastY = y;
-        }
-
+        drawFunction(g, a, Color.red, (x, param) -> coefficient * x);
 
         double startX = Double.parseDouble(getOrbitPoint());
 
@@ -139,5 +109,47 @@ class Painter extends JPanel {
             currentX = functionX;
             currentY = function1;
         }
+    }
+
+    public void drawFunction(Graphics g, double a, Color color, Function function) {
+        Integer lastX = null;
+        Integer lastY = null;
+
+        g.setColor(color);
+
+        for (double i = domainMin; i < domainMax; i += dotDensity) {
+            double functionY = function.execute(i, a);
+
+            int x = convertX(i);
+            int y = convertY(functionY);
+
+            if(lastX == null){
+                lastX = x;
+                lastY = y;
+            }
+
+            // ensures that the distance between points isn't too big
+            // avoids calculation / drawing errors
+            if(Math.abs(x - lastX) < maxJump && Math.abs(y - lastY) < maxJump){
+                g.drawLine(lastX, lastY, x, y);
+            }
+
+            lastX = x;
+            lastY = y;
+        }
+    }
+
+    @Override
+    public void paintComponent(Graphics g) {
+        super.paintComponent(g);
+
+        drawCoordinateSystem(g);
+
+        double a = Double.parseDouble(getInputText());
+        drawFunction(g, a, Color.blue, (x, param) -> x * Math.exp(param * (1 - x)));
+
+        //orbit
+
+        if(drawOrbitState){ drawOrbit(g, a); }
     }
 }
