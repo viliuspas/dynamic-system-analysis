@@ -30,7 +30,7 @@ public class Main{
         JPanel secondChunkPanel = new JPanel();
         secondChunkPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
 
-        JLabel label2 = new JLabel("o =");
+        JLabel label2 = new JLabel("x =");
         secondChunkPanel.add(label2);
 
         JSlider slider2 = new JSlider(JSlider.HORIZONTAL, -50, 50, 1);
@@ -53,6 +53,9 @@ public class Main{
         coordinateSystemPanel.add(buttonZoomIn);
         coordinateSystemPanel.add(buttonZoomOut);
         coordinateSystemPanel.add(buttonReset);
+
+        JCheckBox feigenbaumCheckBox = new JCheckBox("Enable Feigenbaum schema");
+        coordinateSystemPanel.add(feigenbaumCheckBox);
 
         inputPanel.add(firstChunkPanel);
         inputPanel.add(secondChunkPanel);
@@ -109,6 +112,11 @@ public class Main{
         });
         buttonReset.addActionListener(e -> {
             painter.resetToStart();
+            painter.repaint();
+        });
+
+        feigenbaumCheckBox.addActionListener(e ->{
+            painter.setDrawFeigenbaumState(feigenbaumCheckBox.isSelected());
             painter.repaint();
         });
 

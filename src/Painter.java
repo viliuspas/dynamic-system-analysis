@@ -1,7 +1,9 @@
 import javax.swing.*;
 import java.awt.*;
+import java.util.*;
 
 class Painter extends JPanel {
+    final Function function = Constants.function;
     final int fHeight = Constants.FRAME_HEIGHT;
     final int fWidth = Constants.FRAME_WIDTH;
     //final int functionMoveInterval = Constants.FUNCTION_MOVE_INTERVAL;
@@ -18,16 +20,14 @@ class Painter extends JPanel {
     private String inputText = "1";
     private String orbitPoint = "1";
     private boolean drawOrbitState = false;
+    private boolean drawFeigenbaumState = false;
     private int functionOffsetX = 0;
     private int functionOffsetY = 0;
     private int domainOffsetX = 0;
     private int domainOffsetY = 0;
     //private int domainRange = 0;
-
-    @FunctionalInterface
-    interface Function {
-        double execute(double x, double param);
-    }
+    private java.util.List<double[]> points = new ArrayList<>();
+    private boolean isFeigenbaumGenerated = false;
 
     public void setDrawOrbitState(boolean state) {
         drawOrbitState = state;
@@ -35,6 +35,13 @@ class Painter extends JPanel {
 
     public boolean getDrawOrbitState() {
         return drawOrbitState;
+    }
+
+    public void setDrawFeigenbaumState(boolean state) {
+        drawFeigenbaumState = state;
+    }
+    public boolean getDrawFeigenbaumState() {
+        return drawFeigenbaumState;
     }
 
 //    public void moveLeft() {
@@ -98,6 +105,14 @@ class Painter extends JPanel {
         return orbitPoint;
     }
 
+    public Color getRandomColor(){
+        Random rand = new Random();
+        float r = rand.nextFloat();
+        float g = rand.nextFloat();
+        float b = rand.nextFloat();
+        return new Color(r, g, b);
+    }
+
     public void drawCoordinateSystem(Graphics g) {
         // x-axis
         g.drawLine(0, convertY(0) + functionOffsetY, fWidth, convertY(0) + functionOffsetY);
@@ -110,14 +125,26 @@ class Painter extends JPanel {
         int x2 = convertX(-unitLineSize) - functionOffsetX;
 
         // x-axis unit lines
-        for (double i = domainMin + domainOffsetX; i < domainMax + domainOffsetX; i += 1) {
+        for (double i = domainMin + domainOffsetX; i < domainMax + domainOffsetX; i += 0.5) {
             int x = convertX(i) - functionOffsetX;
+            char[] value = Double.toString(i).toCharArray();
+
             g.drawLine(x, y1, x, y2);
+
+            if(i == (int)i && getZoom() >= 30 && i != 0) {
+                g.drawChars(value, 0, value.length - 2, x - 3, y1 + 15);
+            }
         }
         // y-axis unit lines
-        for (double i = domainMinY + domainOffsetY; i < domainMaxY + domainOffsetY; i += 1) {
+        for (double i = domainMinY + domainOffsetY; i < domainMaxY + domainOffsetY; i += 0.5) {
             int y = convertY(i) + functionOffsetY;
+            char[] value = Double.toString(i).toCharArray();
+
             g.drawLine(x1, y, x2, y);
+
+            if(i == (int)i && getZoom() >= 30 && i != 0) {
+                g.drawChars(value, 0, value.length - 2, x1 + 5, y + 4);
+            }
         }
     }
 
@@ -143,7 +170,7 @@ class Painter extends JPanel {
 
         double currentX = startX;
         double currentY = 0;
-        for(int i = 0; i<orbitStepCount ;++i) {
+        for(int i = 0; i < orbitStepCount ; i++) {
             double function1 = currentX * Math.exp(a * (1 - currentX));
 
             g.drawLine(convertX(currentX) - functionOffsetX,
@@ -169,7 +196,6 @@ class Painter extends JPanel {
 
         g.setColor(color);
 
-
         for (double i = domainMin + domainOffsetX; i < domainMax + domainOffsetX; i += dotDensity) {
             double functionY = function.execute(i, a);
 
@@ -192,17 +218,56 @@ class Painter extends JPanel {
         }
     }
 
+    public void drawFeigenbaum(Graphics g, Color color, Function function){
+        if(!isFeigenbaumGenerated){
+            generateBifurcationPoints(0,8,1000, 10000, 200, function);
+        }
+
+        g.setColor(color);
+        for (double[] point : points){
+            int x = convertX(point[0]);
+            int y = convertY(point[1]);
+            g.drawOval(x - functionOffsetX, y + functionOffsetY, 1, 1);
+        }
+    }
+
+    public void generateBifurcationPoints(double aMin, double aMax, int xDensity, int iterations, int yDensity, Function function) {
+        double x0 = 0.5;
+        double aStepCount = (aMax - aMin) / xDensity;
+
+        for (int i = 0; i <= xDensity; i++) {
+            double a = aMin + i * aStepCount;
+            double x = x0;
+
+            // Stabilize the system by iterating a number of times
+            for (int j = 0; j < iterations; j++) {
+                x = function.execute(x, a);
+            }
+
+            // Record yDensity after stabilization
+            for (int j = 0; j < yDensity; j++) {
+                x = function.execute(x, a);
+                points.add(new double[]{a, x});
+            }
+        }
+        isFeigenbaumGenerated = true;
+    }
+
     @Override
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
 
         drawCoordinateSystem(g);
 
-        double a = Double.parseDouble(getInputText());
-        drawFunction(g, a, Color.blue, (x, param) -> x * Math.exp(param * (1 - x)));
+        if (!drawFeigenbaumState) {
+            double a = Double.parseDouble(getInputText());
+            drawFunction(g, a, Color.blue, function);
 
-        //orbit
-
-        if(drawOrbitState){ drawOrbit(g, a); }
+            //orbit
+            if(drawOrbitState){ drawOrbit(g, a); }
+        }
+        else {
+            drawFeigenbaum(g, Color.RED, function);
+        }
     }
 }
