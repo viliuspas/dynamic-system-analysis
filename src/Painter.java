@@ -21,12 +21,13 @@ class Painter extends JPanel {
     private String orbitPoint = "1";
     private boolean drawOrbitState = false;
     private boolean drawFeigenbaumState = false;
+    private boolean drawAtoNState = false;
     private int functionOffsetX = 0;
     private int functionOffsetY = 0;
     private int domainOffsetX = 0;
     private int domainOffsetY = 0;
     //private int domainRange = 0;
-    private java.util.List<double[]> points = new ArrayList<>();
+    private Map<Double, Set<Double>> points = new TreeMap<>();
     private boolean isFeigenbaumGenerated = false;
 
     public void setDrawOrbitState(boolean state) {
@@ -43,6 +44,9 @@ class Painter extends JPanel {
     public boolean getDrawFeigenbaumState() {
         return drawFeigenbaumState;
     }
+
+    public void setDrawAToNState(boolean state){ drawAtoNState = state; }
+    public boolean getDrawAToAnState() { return drawAtoNState; }
 
 //    public void moveLeft() {
 //        domainRange -= 1;
@@ -156,7 +160,7 @@ class Painter extends JPanel {
         return (int)(fHeight/2 - y * zoom);
     }
 
-    public void drawOrbit(Graphics g, double a) {
+    public void drawOrbit(Graphics g, double a, Function function) {
 
         double selectedX = 1;
         double selectedY = selectedX * Math.exp(a * (1 - selectedX));
@@ -171,7 +175,7 @@ class Painter extends JPanel {
         double currentX = startX;
         double currentY = 0;
         for(int i = 0; i < orbitStepCount ; i++) {
-            double function1 = currentX * Math.exp(a * (1 - currentX));
+            double function1 = function.execute(currentX, a);
 
             g.drawLine(convertX(currentX) - functionOffsetX,
                     convertY(currentY) + functionOffsetY,
@@ -218,20 +222,37 @@ class Painter extends JPanel {
         }
     }
 
-    public void drawFeigenbaum(Graphics g, Color color, Function function){
+    public void drawLogisticsMap(Graphics g, Color color, Function function, int maxBifurcationCount){
         if(!isFeigenbaumGenerated){
-            generateBifurcationPoints(0,8,1000, 10000, 200, function);
+            generateLogisticsMapPoints(0,8,4000, 10000, 300, function);
         }
 
-        g.setColor(color);
-        for (double[] point : points){
-            int x = convertX(point[0]);
-            int y = convertY(point[1]);
-            g.drawOval(x - functionOffsetX, y + functionOffsetY, 1, 1);
+        int branchCount = (int)Math.pow(2, maxBifurcationCount);
+
+        int bifurcationCount = 1;
+        for (Double a : points.keySet()){
+            int x = convertX(a);
+            for (Double xn : points.get(a)){
+                int y = convertY(xn);
+                g.setColor(color);
+                g.drawOval(x - functionOffsetX - 1, y + functionOffsetY - 1, 1, 1);
+
+                if (bifurcationCount < points.get(a).size() && bifurcationCount < branchCount){
+                    bifurcationCount = points.get(a).size();
+                    g.setColor(Color.BLUE);
+                    g.drawLine(x - functionOffsetX, 0, x - functionOffsetX, fHeight);
+                    g.setColor(Color.BLACK);
+                    String value = "a ="+ a;
+                    g.drawString(value, x - functionOffsetX - 50, y + functionOffsetY - 30);
+                    g.drawLine(x - functionOffsetX - 30, y + functionOffsetY - 30, x - functionOffsetX, y + functionOffsetY);
+                }
+            }
         }
     }
 
-    public void generateBifurcationPoints(double aMin, double aMax, int xDensity, int iterations, int yDensity, Function function) {
+    public void generateLogisticsMapPoints(double aMin, double aMax, int xDensity, int iterations, int yDensity, Function function) {
+
+        // don't know where to start from
         double x0 = 0.5;
         double aStepCount = (aMax - aMin) / xDensity;
 
@@ -244,13 +265,52 @@ class Painter extends JPanel {
                 x = function.execute(x, a);
             }
 
-            // Record yDensity after stabilization
+            Set<Double> uniqueValues = new HashSet<>();
             for (int j = 0; j < yDensity; j++) {
                 x = function.execute(x, a);
-                points.add(new double[]{a, x});
+                uniqueValues.add(Math.round(x * 1000.0) / 1000.0);
             }
+            points.put(a, uniqueValues);
         }
         isFeigenbaumGenerated = true;
+    }
+
+    public void drawAToN(Graphics g, Function function, Color color, double a){
+        Double lastX = null;
+        Double lastN = null;
+
+        g.setColor(color);
+
+        // don't know where to start from
+        double x = 0.5;
+
+        for (double n = 0; n <= domainMax + domainOffsetX; n++) {
+            if(lastN == null){
+                lastN = n;
+                lastX = x;
+            }
+
+            x = function.execute(x, a);
+
+            if (n != 0){
+                g.setColor(color);
+                g.drawLine(convertX(lastN) - functionOffsetX, convertY(lastX) + functionOffsetY, convertX(n) - functionOffsetX, convertY(x) + functionOffsetY);
+            }
+
+            int dotSize = 8;
+            g.setColor(Color.BLACK);
+            g.fillOval(convertX(n) - functionOffsetX - dotSize / 2, convertY(x) + functionOffsetY - dotSize / 2, dotSize, dotSize);
+
+            String stringValue = String.format("(%.2f; %.2f)", n, x);
+            char[] value = stringValue.toCharArray();
+            if(n == (int)n && getZoom() >= 50) {
+                g.drawChars(value, 0, value.length, convertX(n) - functionOffsetX - 30, convertY(x) + functionOffsetY - 5);
+            }
+
+
+            lastN = n;
+            lastX = x;
+        }
     }
 
     @Override
@@ -259,15 +319,22 @@ class Painter extends JPanel {
 
         drawCoordinateSystem(g);
 
-        if (!drawFeigenbaumState) {
+        if (!getDrawFeigenbaumState()) {
             double a = Double.parseDouble(getInputText());
-            drawFunction(g, a, Color.blue, function);
 
-            //orbit
-            if(drawOrbitState){ drawOrbit(g, a); }
+            if (getDrawAToAnState()) {
+                // a to n
+                drawAToN(g,function,Color.RED, a);
+            }
+            else {
+                drawFunction(g, a, Color.blue, function);
+
+                //orbit
+                if(getDrawOrbitState()){ drawOrbit(g, a, function); }
+            }
         }
         else {
-            drawFeigenbaum(g, Color.RED, function);
+            drawLogisticsMap(g, Color.RED, function, 3);
         }
     }
 }
