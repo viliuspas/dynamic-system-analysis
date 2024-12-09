@@ -11,5 +11,6 @@ public class Constants{
     public static final double DOMAIN_MAX = 50;
     public static final int MAX_JUMP = 50;
     public static final double UNIT_LINE_SIZE = 0.05;
-    public static final int ORBIT_STEP_COUNT = 40;
+    public static final int ORBIT_STEP_COUNT = 500;
+    public static final int ARange = 15;
 }

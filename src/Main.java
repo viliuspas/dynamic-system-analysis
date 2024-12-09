@@ -45,6 +45,10 @@ public class Main{
         JCheckBox orbitCheckBox = new JCheckBox("");
         secondChunkPanel.add(orbitCheckBox);
 
+        JLabel intervalLabel = new JLabel(" sadasdsaad");
+        secondChunkPanel.add(intervalLabel);
+
+
         // coordinate system control chunk
 
         JPanel coordinateSystemPanel = new JPanel();
@@ -68,7 +72,7 @@ public class Main{
         inputPanel.add(coordinateSystemPanel);
         frame.add(inputPanel, BorderLayout.NORTH);
 
-        Painter painter = new Painter();
+        Painter painter = new Painter(intervalLabel);
 
         MouseControl mouseControl = new MouseControl(painter);
         painter.addMouseListener(mouseControl);
