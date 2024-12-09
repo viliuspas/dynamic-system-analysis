@@ -1,5 +1,7 @@
 import javax.swing.*;
 import java.awt.*;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 import java.util.List;
 
@@ -176,10 +178,7 @@ class Painter extends JPanel {
 
     public void drawOrbit(Graphics g, double a, Function function) {
 
-        boolean isDefined = true;
-        double selectedX = 1;
-        double selectedY = function.execute(selectedX, a);
-        double coefficient = selectedY / selectedX;
+        double coefficient = 1;
 
         drawFunction(g, a, Color.red, (x, param) -> coefficient * x);
 
@@ -347,9 +346,7 @@ class Painter extends JPanel {
 
     public boolean isDefined(double a) {
 
-        double selectedX = 1;
-        double selectedY = selectedX * Math.exp(a * (1 - selectedX));
-        double coefficient = selectedY / selectedX;
+        double coefficient = 1;
 
         double currentX = Double.parseDouble(getOrbitPoint());
         for(int i = 0; i < orbitStepCount ; i++) {
@@ -409,7 +406,7 @@ class Painter extends JPanel {
                 }
             }
             else {
-                return Double.toString(Math.round(number));
+                return Double.toString(number);
             }
         }
 
@@ -420,6 +417,14 @@ class Painter extends JPanel {
             this.startInclusive = startInclusive;
             this.endInclusive = endInclusive;
         }
+    }
+
+    public static double round(double value, int places) {
+        if (places < 0) throw new IllegalArgumentException();
+
+        BigDecimal bd = BigDecimal.valueOf(value);
+        bd = bd.setScale(places, RoundingMode.HALF_UP);
+        return bd.doubleValue();
     }
 
     public void calculateARange(Graphics g, Function function) {
@@ -442,18 +447,22 @@ class Painter extends JPanel {
         };
 
         isLastDefined = isCurrentDefined;
-        for(double i = -aRange + 0.1; i <= aRange; i += 0.1){
-            isCurrentDefined = isDefined(i);
+        for(double i = -aRange + 0.01; i <= aRange; i += 0.01){
+            double currentA = round(i, 2);
+
+            isCurrentDefined = isDefined(currentA);
 
 
             if(isLastDefined != isCurrentDefined) {
-                ranges.add(new Range(lastA, i, isLastDefined, false, isCurrentDefined));
-                lastA = i;
+                boolean startInclusive = (ranges.isEmpty() ? false : !ranges.get(ranges.size()-1).endInclusive);
+
+                ranges.add(new Range(lastA, (!isCurrentDefined ? currentA - 0.01 : currentA), isLastDefined, startInclusive, isLastDefined));
+                lastA = currentA;
             }
             isLastDefined = isCurrentDefined;
         }
 
-        ranges.add(new Range(lastA, Double.POSITIVE_INFINITY, isLastDefined, false, false));
+        ranges.add(new Range((!isLastDefined ? lastA - 0.01 : lastA), Double.POSITIVE_INFINITY, isLastDefined, (ranges.isEmpty() ? false : !ranges.get(ranges.size()-1).endInclusive), false));
 
 
         intervalLabel.setText(ranges.toString());
