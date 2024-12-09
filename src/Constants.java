@@ -1,6 +1,6 @@
 public class Constants{
     public static final Function function = (x, a) -> {return x * Math.exp(a * (1 - x));};
-    //public static final Function function = (x, a) -> {return x * a * (1 - x);};
+//    public static final Function function = (x, a) -> {return x * a * (1 - x);};
     public static final int FRAME_WIDTH = 1000;
     public static final int FRAME_HEIGHT = 800;
     public static final int ZOOM_INTERVAL = 10;

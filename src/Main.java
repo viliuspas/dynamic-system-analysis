@@ -26,7 +26,7 @@ public class Main{
         JTextField textField = new JTextField("1", 3);
         firstChunkPanel.add(textField);
 
-        JCheckBox aToNCheckbox = new JCheckBox("Enable a to n schema");
+        JCheckBox aToNCheckbox = new JCheckBox("Enable xn to n schema");
         firstChunkPanel.add(aToNCheckbox);
 
         // second chunk
@@ -59,6 +59,9 @@ public class Main{
 
         JCheckBox feigenbaumCheckBox = new JCheckBox("Enable Feigenbaum schema");
         coordinateSystemPanel.add(feigenbaumCheckBox);
+
+        JCheckBox drawExtraStatsBox = new JCheckBox("Enable extra stats");
+        coordinateSystemPanel.add(drawExtraStatsBox);
 
         inputPanel.add(firstChunkPanel);
         inputPanel.add(secondChunkPanel);
@@ -120,6 +123,11 @@ public class Main{
 
         feigenbaumCheckBox.addActionListener(e ->{
             painter.setDrawFeigenbaumState(feigenbaumCheckBox.isSelected());
+            painter.repaint();
+        });
+
+        drawExtraStatsBox.addActionListener(e ->{
+            painter.setDrawExtraStats(drawExtraStatsBox.isSelected());
             painter.repaint();
         });
 

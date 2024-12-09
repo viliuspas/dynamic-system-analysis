@@ -22,6 +22,7 @@ class Painter extends JPanel {
     private boolean drawOrbitState = false;
     private boolean drawFeigenbaumState = false;
     private boolean drawAtoNState = false;
+    private boolean drawExtraStats = false;
     private int functionOffsetX = 0;
     private int functionOffsetY = 0;
     private int domainOffsetX = 0;
@@ -47,6 +48,9 @@ class Painter extends JPanel {
 
     public void setDrawAToNState(boolean state){ drawAtoNState = state; }
     public boolean getDrawAToAnState() { return drawAtoNState; }
+
+    public void setDrawExtraStats(boolean state){ this.drawExtraStats = state; }
+    public boolean getDrawExtraStats(){ return drawExtraStats; }
 
 //    public void moveLeft() {
 //        domainRange -= 1;
@@ -163,7 +167,7 @@ class Painter extends JPanel {
     public void drawOrbit(Graphics g, double a, Function function) {
 
         double selectedX = 1;
-        double selectedY = selectedX * Math.exp(a * (1 - selectedX));
+        double selectedY = function.execute(selectedX, a);
         double coefficient = selectedY / selectedX;
 
         drawFunction(g, a, Color.red, (x, param) -> coefficient * x);
@@ -224,7 +228,7 @@ class Painter extends JPanel {
 
     public void drawLogisticsMap(Graphics g, Color color, Function function, int maxBifurcationCount){
         if(!isFeigenbaumGenerated){
-            generateLogisticsMapPoints(0,8,4000, 10000, 300, function);
+            generateLogisticsMapPoints(0,8,1000, 10000, 300, function);
         }
 
         int branchCount = (int)Math.pow(2, maxBifurcationCount);
@@ -237,14 +241,32 @@ class Painter extends JPanel {
                 g.setColor(color);
                 g.drawOval(x - functionOffsetX - 1, y + functionOffsetY - 1, 1, 1);
 
-                if (bifurcationCount < points.get(a).size() && bifurcationCount < branchCount){
-                    bifurcationCount = points.get(a).size();
-                    g.setColor(Color.BLUE);
-                    g.drawLine(x - functionOffsetX, 0, x - functionOffsetX, fHeight);
-                    g.setColor(Color.BLACK);
-                    String value = "a ="+ a;
-                    g.drawString(value, x - functionOffsetX - 50, y + functionOffsetY - 30);
-                    g.drawLine(x - functionOffsetX - 30, y + functionOffsetY - 30, x - functionOffsetX, y + functionOffsetY);
+
+                    if (bifurcationCount < points.get(a).size() && bifurcationCount < branchCount){
+                        bifurcationCount = points.get(a).size();
+                        if (getDrawExtraStats()){
+                            g.setColor(Color.BLUE);
+                            g.drawLine(x - functionOffsetX, 0, x - functionOffsetX, fHeight);
+                            g.setColor(Color.BLACK);
+                            String value = "a = "+ String.format("%.3f", a);
+                            g.drawString(value, x - functionOffsetX - 50, y + functionOffsetY - 30);
+                            g.drawLine(x - functionOffsetX - 30, y + functionOffsetY - 30, x - functionOffsetX, y + functionOffsetY);
+                        }
+                    }
+
+                // feigenbaum bifurcation ending line
+                if (bifurcationCount > 1 && points.get(a).size() == 1){
+                    if (getDrawExtraStats()){
+                        g.setColor(Color.cyan);
+                        g.drawLine(x - functionOffsetX, 0, x - functionOffsetX, fHeight);
+                        g.drawLine(-functionOffsetX, 0, -functionOffsetX, fHeight);
+
+                        g.setColor(Color.BLACK);
+                        String value = "a = "+ String.format("%.3f", a);
+                        g.drawString(value, x - functionOffsetX + 50, y + functionOffsetY - 30);
+                        g.drawLine(x - functionOffsetX + 30, y + functionOffsetY - 30, x - functionOffsetX, y + functionOffsetY);
+                    }
+                    return;
                 }
             }
         }
@@ -306,7 +328,6 @@ class Painter extends JPanel {
             if(n == (int)n && getZoom() >= 50) {
                 g.drawChars(value, 0, value.length, convertX(n) - functionOffsetX - 30, convertY(x) + functionOffsetY - 5);
             }
-
 
             lastN = n;
             lastX = x;
