@@ -1,6 +1,7 @@
 import javax.swing.*;
 import java.awt.*;
 import java.util.*;
+import java.util.List;
 
 class Painter extends JPanel {
     final Function function = Constants.function;
@@ -17,6 +18,7 @@ class Painter extends JPanel {
     final int maxJump = Constants.MAX_JUMP;
     final double unitLineSize = Constants.UNIT_LINE_SIZE;
     final int orbitStepCount = Constants.ORBIT_STEP_COUNT;
+    final int aRange = Constants.ARange;
     private String inputText = "1";
     private String orbitPoint = "1";
     private boolean drawOrbitState = false;
@@ -29,6 +31,14 @@ class Painter extends JPanel {
     //private int domainRange = 0;
     private Map<Double, Set<Double>> points = new TreeMap<>();
     private boolean isFeigenbaumGenerated = false;
+    public JLabel intervalLabel;
+
+    public Painter(JLabel intervalLabel) {
+        super();
+
+        this.intervalLabel = intervalLabel;
+    }
+
 
     public void setDrawOrbitState(boolean state) {
         drawOrbitState = state;
@@ -162,6 +172,7 @@ class Painter extends JPanel {
 
     public void drawOrbit(Graphics g, double a, Function function) {
 
+        boolean isDefined = true;
         double selectedX = 1;
         double selectedY = selectedX * Math.exp(a * (1 - selectedX));
         double coefficient = selectedY / selectedX;
@@ -282,7 +293,7 @@ class Painter extends JPanel {
         g.setColor(color);
 
         // don't know where to start from
-        double x = 0.5;
+        double x = Double.parseDouble(getOrbitPoint());
 
         for (double n = 0; n <= domainMax + domainOffsetX; n++) {
             if(lastN == null){
@@ -313,6 +324,120 @@ class Painter extends JPanel {
         }
     }
 
+    public boolean isDefined(double a) {
+
+        double selectedX = 1;
+        double selectedY = selectedX * Math.exp(a * (1 - selectedX));
+        double coefficient = selectedY / selectedX;
+
+        double currentX = Double.parseDouble(getOrbitPoint());
+        for(int i = 0; i < orbitStepCount ; i++) {
+            double function1 = function.execute(currentX, a);
+
+            if(Double.isInfinite(function1)) {
+                return false;
+            }
+
+            double functionX = function1 / coefficient;
+
+            currentX = functionX;
+        }
+
+        return true;
+    }
+
+    class Range {
+        double start;
+        double end;
+        boolean isDefined;
+        boolean startInclusive;
+        boolean endInclusive;
+
+        @Override
+        public String toString() {
+            String rangeString = "";
+            String startString = getNumberString(start);
+            String endString = getNumberString(end);
+
+            if(startInclusive) {
+                rangeString += "[";
+            }
+            else {
+                rangeString += "(";
+            }
+
+            rangeString += startString + " ; " + endString;
+
+            if(endInclusive) {
+                rangeString += "]";
+            }
+            else {
+                rangeString += ")";
+            }
+
+            return rangeString;
+        }
+
+        public String getNumberString(Double number) {
+            if(Double.isInfinite(number)) {
+                if(number < 0) {
+                    return "-inf";
+                }
+                else {
+                    return "+inf";
+                }
+            }
+            else {
+                return Double.toString(Math.round(number));
+            }
+        }
+
+        public Range(double start, double end, boolean isDefined, boolean startInclusive, boolean endInclusive) {
+            this.start = start;
+            this.end = end;
+            this.isDefined = isDefined;
+            this.startInclusive = startInclusive;
+            this.endInclusive = endInclusive;
+        }
+    }
+
+    public void calculateARange(Graphics g, Function function) {
+
+        double lastA = Double.NEGATIVE_INFINITY;
+        boolean isCurrentDefined = isDefined(-aRange);
+        boolean isLastDefined;
+        List<Range> ranges = new ArrayList<>() {
+            @Override
+            public String toString() {
+                String rangesString = "";
+
+                for(Range range : this) {
+                    rangesString += (range.isDefined ? "DEFINED: " : "UNDEFINED: ");
+                    rangesString += range + "   ";
+                }
+
+                return rangesString;
+            }
+        };
+
+        isLastDefined = isCurrentDefined;
+        for(double i = -aRange + 0.1; i <= aRange; i += 0.1){
+            isCurrentDefined = isDefined(i);
+
+
+            if(isLastDefined != isCurrentDefined) {
+                ranges.add(new Range(lastA, i, isLastDefined, false, isCurrentDefined));
+                lastA = i;
+            }
+            isLastDefined = isCurrentDefined;
+        }
+
+        ranges.add(new Range(lastA, Double.POSITIVE_INFINITY, isLastDefined, false, false));
+
+
+        intervalLabel.setText(ranges.toString());
+    }
+
     @Override
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
@@ -330,7 +455,10 @@ class Painter extends JPanel {
                 drawFunction(g, a, Color.blue, function);
 
                 //orbit
-                if(getDrawOrbitState()){ drawOrbit(g, a, function); }
+                if(getDrawOrbitState()){
+                    drawOrbit(g, a, function);
+                    calculateARange(g,function);
+                }
             }
         }
         else {
