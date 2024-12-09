@@ -45,7 +45,7 @@ public class Main{
         JCheckBox orbitCheckBox = new JCheckBox("");
         secondChunkPanel.add(orbitCheckBox);
 
-        JLabel intervalLabel = new JLabel(" sadasdsaad");
+        JLabel intervalLabel = new JLabel("Orbit");
         secondChunkPanel.add(intervalLabel);
 
 
