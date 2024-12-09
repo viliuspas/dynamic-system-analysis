@@ -1,6 +1,7 @@
 import javax.swing.*;
 import java.awt.*;
 import java.util.*;
+import java.util.List;
 
 class Painter extends JPanel {
     final Function function = Constants.function;
@@ -17,11 +18,13 @@ class Painter extends JPanel {
     final int maxJump = Constants.MAX_JUMP;
     final double unitLineSize = Constants.UNIT_LINE_SIZE;
     final int orbitStepCount = Constants.ORBIT_STEP_COUNT;
+    final int aRange = Constants.ARange;
     private String inputText = "1";
     private String orbitPoint = "1";
     private boolean drawOrbitState = false;
     private boolean drawFeigenbaumState = false;
     private boolean drawAtoNState = false;
+    private boolean drawExtraStats = false;
     private int functionOffsetX = 0;
     private int functionOffsetY = 0;
     private int domainOffsetX = 0;
@@ -29,6 +32,14 @@ class Painter extends JPanel {
     //private int domainRange = 0;
     private Map<Double, Set<Double>> points = new TreeMap<>();
     private boolean isFeigenbaumGenerated = false;
+    public JLabel intervalLabel;
+
+    public Painter(JLabel intervalLabel) {
+        super();
+
+        this.intervalLabel = intervalLabel;
+    }
+
 
     public void setDrawOrbitState(boolean state) {
         drawOrbitState = state;
@@ -47,6 +58,9 @@ class Painter extends JPanel {
 
     public void setDrawAToNState(boolean state){ drawAtoNState = state; }
     public boolean getDrawAToAnState() { return drawAtoNState; }
+
+    public void setDrawExtraStats(boolean state){ this.drawExtraStats = state; }
+    public boolean getDrawExtraStats(){ return drawExtraStats; }
 
 //    public void moveLeft() {
 //        domainRange -= 1;
@@ -162,8 +176,9 @@ class Painter extends JPanel {
 
     public void drawOrbit(Graphics g, double a, Function function) {
 
+        boolean isDefined = true;
         double selectedX = 1;
-        double selectedY = selectedX * Math.exp(a * (1 - selectedX));
+        double selectedY = function.execute(selectedX, a);
         double coefficient = selectedY / selectedX;
 
         drawFunction(g, a, Color.red, (x, param) -> coefficient * x);
@@ -224,7 +239,7 @@ class Painter extends JPanel {
 
     public void drawLogisticsMap(Graphics g, Color color, Function function, int maxBifurcationCount){
         if(!isFeigenbaumGenerated){
-            generateLogisticsMapPoints(0,8,4000, 10000, 300, function);
+            generateLogisticsMapPoints(0,8,1000, 10000, 300, function);
         }
 
         int branchCount = (int)Math.pow(2, maxBifurcationCount);
@@ -237,14 +252,32 @@ class Painter extends JPanel {
                 g.setColor(color);
                 g.drawOval(x - functionOffsetX - 1, y + functionOffsetY - 1, 1, 1);
 
-                if (bifurcationCount < points.get(a).size() && bifurcationCount < branchCount){
-                    bifurcationCount = points.get(a).size();
-                    g.setColor(Color.BLUE);
-                    g.drawLine(x - functionOffsetX, 0, x - functionOffsetX, fHeight);
-                    g.setColor(Color.BLACK);
-                    String value = "a ="+ a;
-                    g.drawString(value, x - functionOffsetX - 50, y + functionOffsetY - 30);
-                    g.drawLine(x - functionOffsetX - 30, y + functionOffsetY - 30, x - functionOffsetX, y + functionOffsetY);
+
+                    if (bifurcationCount < points.get(a).size() && bifurcationCount < branchCount){
+                        bifurcationCount = points.get(a).size();
+                        if (getDrawExtraStats()){
+                            g.setColor(Color.BLUE);
+                            g.drawLine(x - functionOffsetX, 0, x - functionOffsetX, fHeight);
+                            g.setColor(Color.BLACK);
+                            String value = "a = "+ String.format("%.3f", a);
+                            g.drawString(value, x - functionOffsetX - 50, y + functionOffsetY - 30);
+                            g.drawLine(x - functionOffsetX - 30, y + functionOffsetY - 30, x - functionOffsetX, y + functionOffsetY);
+                        }
+                    }
+
+                // feigenbaum bifurcation ending line
+                if (bifurcationCount > 1 && points.get(a).size() == 1){
+                    if (getDrawExtraStats()){
+                        g.setColor(Color.cyan);
+                        g.drawLine(x - functionOffsetX, 0, x - functionOffsetX, fHeight);
+                        g.drawLine(-functionOffsetX, 0, -functionOffsetX, fHeight);
+
+                        g.setColor(Color.BLACK);
+                        String value = "a = "+ String.format("%.3f", a);
+                        g.drawString(value, x - functionOffsetX + 50, y + functionOffsetY - 30);
+                        g.drawLine(x - functionOffsetX + 30, y + functionOffsetY - 30, x - functionOffsetX, y + functionOffsetY);
+                    }
+                    return;
                 }
             }
         }
@@ -282,7 +315,7 @@ class Painter extends JPanel {
         g.setColor(color);
 
         // don't know where to start from
-        double x = 0.5;
+        double x = Double.parseDouble(getOrbitPoint());
 
         for (double n = 0; n <= domainMax + domainOffsetX; n++) {
             if(lastN == null){
@@ -307,10 +340,123 @@ class Painter extends JPanel {
                 g.drawChars(value, 0, value.length, convertX(n) - functionOffsetX - 30, convertY(x) + functionOffsetY - 5);
             }
 
-
             lastN = n;
             lastX = x;
         }
+    }
+
+    public boolean isDefined(double a) {
+
+        double selectedX = 1;
+        double selectedY = selectedX * Math.exp(a * (1 - selectedX));
+        double coefficient = selectedY / selectedX;
+
+        double currentX = Double.parseDouble(getOrbitPoint());
+        for(int i = 0; i < orbitStepCount ; i++) {
+            double function1 = function.execute(currentX, a);
+
+            if(Double.isInfinite(function1)) {
+                return false;
+            }
+
+            double functionX = function1 / coefficient;
+
+            currentX = functionX;
+        }
+
+        return true;
+    }
+
+    class Range {
+        double start;
+        double end;
+        boolean isDefined;
+        boolean startInclusive;
+        boolean endInclusive;
+
+        @Override
+        public String toString() {
+            String rangeString = "";
+            String startString = getNumberString(start);
+            String endString = getNumberString(end);
+
+            if(startInclusive) {
+                rangeString += "[";
+            }
+            else {
+                rangeString += "(";
+            }
+
+            rangeString += startString + " ; " + endString;
+
+            if(endInclusive) {
+                rangeString += "]";
+            }
+            else {
+                rangeString += ")";
+            }
+
+            return rangeString;
+        }
+
+        public String getNumberString(Double number) {
+            if(Double.isInfinite(number)) {
+                if(number < 0) {
+                    return "-inf";
+                }
+                else {
+                    return "+inf";
+                }
+            }
+            else {
+                return Double.toString(Math.round(number));
+            }
+        }
+
+        public Range(double start, double end, boolean isDefined, boolean startInclusive, boolean endInclusive) {
+            this.start = start;
+            this.end = end;
+            this.isDefined = isDefined;
+            this.startInclusive = startInclusive;
+            this.endInclusive = endInclusive;
+        }
+    }
+
+    public void calculateARange(Graphics g, Function function) {
+
+        double lastA = Double.NEGATIVE_INFINITY;
+        boolean isCurrentDefined = isDefined(-aRange);
+        boolean isLastDefined;
+        List<Range> ranges = new ArrayList<>() {
+            @Override
+            public String toString() {
+                String rangesString = "";
+
+                for(Range range : this) {
+                    rangesString += (range.isDefined ? "DEFINED: " : "UNDEFINED: ");
+                    rangesString += range + "   ";
+                }
+
+                return rangesString;
+            }
+        };
+
+        isLastDefined = isCurrentDefined;
+        for(double i = -aRange + 0.1; i <= aRange; i += 0.1){
+            isCurrentDefined = isDefined(i);
+
+
+            if(isLastDefined != isCurrentDefined) {
+                ranges.add(new Range(lastA, i, isLastDefined, false, isCurrentDefined));
+                lastA = i;
+            }
+            isLastDefined = isCurrentDefined;
+        }
+
+        ranges.add(new Range(lastA, Double.POSITIVE_INFINITY, isLastDefined, false, false));
+
+
+        intervalLabel.setText(ranges.toString());
     }
 
     @Override
@@ -330,7 +476,10 @@ class Painter extends JPanel {
                 drawFunction(g, a, Color.blue, function);
 
                 //orbit
-                if(getDrawOrbitState()){ drawOrbit(g, a, function); }
+                if(getDrawOrbitState()){
+                    drawOrbit(g, a, function);
+                    calculateARange(g,function);
+                }
             }
         }
         else {
