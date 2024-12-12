@@ -1,5 +1,8 @@
+import jdk.jshell.Diag;
+
 import javax.swing.*;
 import java.awt.*;
+import java.util.Arrays;
 
 public class Main{
     public static void main(String[] args){
@@ -26,9 +29,6 @@ public class Main{
         JTextField textField = new JTextField("1", 3);
         firstChunkPanel.add(textField);
 
-        JCheckBox aToNCheckbox = new JCheckBox("Enable xn to n schema");
-        firstChunkPanel.add(aToNCheckbox);
-
         // second chunk
         JPanel secondChunkPanel = new JPanel();
         secondChunkPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
@@ -42,13 +42,6 @@ public class Main{
         JTextField orbitPoint = new JTextField("1", 3);
         secondChunkPanel.add(orbitPoint);
 
-        JCheckBox orbitCheckBox = new JCheckBox("");
-        secondChunkPanel.add(orbitCheckBox);
-
-        JLabel intervalLabel = new JLabel("Orbit");
-        secondChunkPanel.add(intervalLabel);
-
-
         // coordinate system control chunk
 
         JPanel coordinateSystemPanel = new JPanel();
@@ -61,18 +54,38 @@ public class Main{
         coordinateSystemPanel.add(buttonZoomOut);
         coordinateSystemPanel.add(buttonReset);
 
-        JCheckBox feigenbaumCheckBox = new JCheckBox("Enable Feigenbaum schema");
-        coordinateSystemPanel.add(feigenbaumCheckBox);
+        JComboBox<Diagrams> diagramChoice = new JComboBox<>(Diagrams.values());
+        coordinateSystemPanel.add(diagramChoice);
 
-        JCheckBox drawExtraStatsBox = new JCheckBox("Enable extra stats");
-        coordinateSystemPanel.add(drawExtraStatsBox);
+        JCheckBox extraStatsBox = new JCheckBox();
+        coordinateSystemPanel.add(extraStatsBox);
+        JLabel intervalLabel = new JLabel("Orbit");
+        coordinateSystemPanel.add(intervalLabel);
+
+        Painter painter = new Painter(intervalLabel);
+
+        JPanel densityPanel = new JPanel();
+
+        JLabel xDensityText = new JLabel("   |     a density =");
+
+        String initialXDensity = String.valueOf(painter.getXDensity());
+        String initialYDensity = String.valueOf(painter.getYDensity());
+
+        JTextField xDensity = new JTextField(initialXDensity,5);
+        JLabel yDensityText = new JLabel("xn density =");
+        JTextField yDensity = new JTextField(initialYDensity, 5);
+        densityPanel.add(xDensityText);
+        densityPanel.add(xDensity);
+        densityPanel.add(yDensityText);
+        densityPanel.add(yDensity);
+
+        densityPanel.setVisible(false);
+        coordinateSystemPanel.add(densityPanel);
 
         inputPanel.add(firstChunkPanel);
         inputPanel.add(secondChunkPanel);
         inputPanel.add(coordinateSystemPanel);
         frame.add(inputPanel, BorderLayout.NORTH);
-
-        Painter painter = new Painter(intervalLabel);
 
         MouseControl mouseControl = new MouseControl(painter);
         painter.addMouseListener(mouseControl);
@@ -94,21 +107,16 @@ public class Main{
             painter.repaint();
         });
 
-        slider2.addChangeListener(e -> {
-            String inputText = Double.toString((double)slider2.getValue() / 10);
-            orbitPoint.setText(Double.toString((double)slider2.getValue() / 10));
-            painter.setOrbitPoint(inputText);
-            painter.repaint();
-        });
-
         orbitPoint.addActionListener(e -> {
             String inputText = orbitPoint.getText();
             painter.setOrbitPoint(inputText);
             painter.repaint();
         });
 
-        orbitCheckBox.addActionListener(e -> {
-            painter.setDrawOrbitState(orbitCheckBox.isSelected());
+        slider2.addChangeListener(e -> {
+            String inputText = Double.toString((double)slider2.getValue() / 10);
+            orbitPoint.setText(Double.toString((double)slider2.getValue() / 10));
+            painter.setOrbitPoint(inputText);
             painter.repaint();
         });
 
@@ -125,18 +133,41 @@ public class Main{
             painter.repaint();
         });
 
-        feigenbaumCheckBox.addActionListener(e ->{
-            painter.setDrawFeigenbaumState(feigenbaumCheckBox.isSelected());
+        diagramChoice.addActionListener(e -> {
+            Diagrams selectedDiagram = (Diagrams) diagramChoice.getSelectedItem();
+
+            extraStatsBox.setVisible(true);
+            intervalLabel.setVisible(true);
+            if (selectedDiagram == Diagrams.Time){
+                extraStatsBox.setVisible(false);
+                intervalLabel.setVisible(false);
+            }
+
+            densityPanel.setVisible(false);
+            if (selectedDiagram == Diagrams.Feigenbaum){
+                densityPanel.setVisible(true);
+            }
+
+            painter.setCurrentDiagram(selectedDiagram);
             painter.repaint();
         });
 
-        drawExtraStatsBox.addActionListener(e ->{
-            painter.setDrawExtraStats(drawExtraStatsBox.isSelected());
+        extraStatsBox.addActionListener(e -> {
+            painter.setDrawExtraStats(extraStatsBox.isSelected());
             painter.repaint();
         });
 
-        aToNCheckbox.addActionListener(e ->{
-            painter.setDrawAToNState(aToNCheckbox.isSelected());
+        xDensity.addActionListener(e -> {
+            String inputText = xDensity.getText();
+            int density = Integer.parseInt(inputText);
+            painter.setXDensity(density);
+            painter.repaint();
+        });
+
+        yDensity.addActionListener(e -> {
+            String inputText = yDensity.getText();
+            int density = Integer.parseInt(inputText);
+            painter.setYDensity(density);
             painter.repaint();
         });
 

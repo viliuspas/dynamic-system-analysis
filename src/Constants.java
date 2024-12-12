@@ -8,9 +8,11 @@ public class Constants{
     public static final int DEFAULT_ZOOM_MULTIPLIER = 50;
     public static final double DOT_DENSITY = 0.01;
     public static final double DOMAIN_MIN = -50;
-    public static final double DOMAIN_MAX = 50;
+    public static final double DOMAIN_MAX = 100;
     public static final int MAX_JUMP = 50;
     public static final double UNIT_LINE_SIZE = 0.05;
     public static final int ORBIT_STEP_COUNT = 500;
     public static final int ARange = 15;
+    public static final int X_DENSITY = 500;
+    public static final int Y_DENSITY = 100;
 }

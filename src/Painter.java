@@ -27,14 +27,19 @@ class Painter extends JPanel {
     private boolean drawFeigenbaumState = false;
     private boolean drawAtoNState = false;
     private boolean drawExtraStats = false;
+    private boolean drawBifurcationPoints = false;
     private int functionOffsetX = 0;
     private int functionOffsetY = 0;
     private int domainOffsetX = 0;
     private int domainOffsetY = 0;
-    //private int domainRange = 0;
+    private Diagrams currentDiagram = Diagrams.Orbit;
+    private int xDensity = Constants.X_DENSITY;
+    private int yDensity = Constants.Y_DENSITY;
+    private boolean hasDensityChanged = true;
     private Map<Double, Set<Double>> points = new TreeMap<>();
     private boolean isFeigenbaumGenerated = false;
     public JLabel intervalLabel;
+
 
     public Painter(JLabel intervalLabel) {
         super();
@@ -42,7 +47,18 @@ class Painter extends JPanel {
         this.intervalLabel = intervalLabel;
     }
 
-
+    public void setXDensity(int density) {
+        this.xDensity = density;
+        this.hasDensityChanged = true;
+    }
+    public int getXDensity(){ return this.xDensity; }
+    public void setYDensity(int density) {
+        this.yDensity = density;
+        this.hasDensityChanged = true;
+    }
+    public int getYDensity(){ return this.yDensity; }
+    public void setCurrentDiagram(Diagrams diagram) {currentDiagram = diagram;}
+    public Diagrams getCurrentDiagram() { return currentDiagram; }
     public void setDrawOrbitState(boolean state) {
         drawOrbitState = state;
     }
@@ -62,15 +78,9 @@ class Painter extends JPanel {
     public boolean getDrawAToAnState() { return drawAtoNState; }
 
     public void setDrawExtraStats(boolean state){ this.drawExtraStats = state; }
-    public boolean getDrawExtraStats(){ return drawExtraStats; }
-
-//    public void moveLeft() {
-//        domainRange -= 1;
-//    }
-//
-//    public void moveRight() {
-//        domainRange += 1;
-//    }
+    public boolean getDrawExtraStats() {return this.drawExtraStats; }
+    public void setDrawBifurcationPoints(boolean state){ this.drawBifurcationPoints = state; }
+    public boolean getDrawBifurcationPoints(){ return drawBifurcationPoints; }
 
     public int getFunctionOffsetX() {
         return functionOffsetX;
@@ -135,7 +145,7 @@ class Painter extends JPanel {
 
     public void drawCoordinateSystem(Graphics g) {
         // x-axis
-        g.drawLine(0, convertY(0) + functionOffsetY, fWidth, convertY(0) + functionOffsetY);
+        g.drawLine(0, convertY(0) + functionOffsetY, 1920, convertY(0) + functionOffsetY);
         // y-axis
         g.drawLine(convertX(0) - functionOffsetX, 0, convertX(0) - functionOffsetX, fHeight);
 
@@ -237,8 +247,8 @@ class Painter extends JPanel {
     }
 
     public void drawLogisticsMap(Graphics g, Color color, Function function, int maxBifurcationCount){
-        if(!isFeigenbaumGenerated){
-            generateLogisticsMapPoints(0,8,1000, 10000, 300, function);
+        if(hasDensityChanged){
+            generateLogisticsMapPoints(0,8, xDensity, 10000, yDensity, function);
         }
 
         int branchCount = (int)Math.pow(2, maxBifurcationCount);
@@ -254,7 +264,7 @@ class Painter extends JPanel {
 
                     if (bifurcationCount < points.get(a).size() && bifurcationCount < branchCount){
                         bifurcationCount = points.get(a).size();
-                        if (getDrawExtraStats()){
+                        if (getDrawBifurcationPoints()){
                             g.setColor(Color.BLUE);
                             g.drawLine(x - functionOffsetX, 0, x - functionOffsetX, fHeight);
                             g.setColor(Color.BLACK);
@@ -266,7 +276,7 @@ class Painter extends JPanel {
 
                 // feigenbaum bifurcation ending line
                 if (bifurcationCount > 1 && points.get(a).size() == 1){
-                    if (getDrawExtraStats()){
+                    if (getDrawBifurcationPoints()){
                         g.setColor(Color.cyan);
                         g.drawLine(x - functionOffsetX, 0, x - functionOffsetX, fHeight);
                         g.drawLine(-functionOffsetX, 0, -functionOffsetX, fHeight);
@@ -283,8 +293,7 @@ class Painter extends JPanel {
     }
 
     public void generateLogisticsMapPoints(double aMin, double aMax, int xDensity, int iterations, int yDensity, Function function) {
-
-        // don't know where to start from
+        points.clear();
         double x0 = 0.5;
         double aStepCount = (aMax - aMin) / xDensity;
 
@@ -304,7 +313,7 @@ class Painter extends JPanel {
             }
             points.put(a, uniqueValues);
         }
-        isFeigenbaumGenerated = true;
+        hasDensityChanged = false;
     }
 
     public void drawAToN(Graphics g, Function function, Color color, double a){
@@ -313,7 +322,6 @@ class Painter extends JPanel {
 
         g.setColor(color);
 
-        // don't know where to start from
         double x = Double.parseDouble(getOrbitPoint());
 
         for (double n = 0; n <= domainMax + domainOffsetX; n++) {
@@ -427,7 +435,7 @@ class Painter extends JPanel {
         return bd.doubleValue();
     }
 
-    public void calculateARange(Graphics g, Function function) {
+    public void calculateARange() {
 
         double lastA = Double.NEGATIVE_INFINITY;
         boolean isCurrentDefined = isDefined(-aRange);
@@ -474,25 +482,24 @@ class Painter extends JPanel {
 
         drawCoordinateSystem(g);
 
-        if (!getDrawFeigenbaumState()) {
-            double a = Double.parseDouble(getInputText());
-
-            if (getDrawAToAnState()) {
-                // a to n
-                drawAToN(g,function,Color.RED, a);
+        double a = Double.parseDouble(getInputText());
+        switch (getCurrentDiagram()) {
+            case Feigenbaum -> {
+                setDrawBifurcationPoints(getDrawExtraStats());
+                drawLogisticsMap(g, Color.RED, function, 3);
+                intervalLabel.setText("Extra stats");
             }
-            else {
+            case Orbit -> {
                 drawFunction(g, a, Color.blue, function);
-
-                //orbit
-                if(getDrawOrbitState()){
+                setDrawOrbitState(getDrawExtraStats());
+                if (getDrawOrbitState()){
                     drawOrbit(g, a, function);
-                    calculateARange(g,function);
+                    calculateARange();
+                } else {
+                    intervalLabel.setText("Orbit");
                 }
             }
-        }
-        else {
-            drawLogisticsMap(g, Color.RED, function, 3);
+            case Time -> drawAToN(g, function, Color.RED, a);
         }
     }
 }
