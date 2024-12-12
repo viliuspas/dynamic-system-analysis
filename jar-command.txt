@@ -1,0 +1,5 @@
+javac -d out/production/dynamic-system-analysis src/*.java
+
+jar cfm dynamic-system-analysis.jar manifest.txt -C out/production/dynamic-system-analysis .
+
+java -jar dynamic-system-analysis.jar
